@@ -7,3 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+luminance = ">=0.42, <0.44"
+luminance-glfw = "0.14"
+luminance-windowing = "0.9"
+glfw = { version = ">=0.39, <0.42", default-features = false }
