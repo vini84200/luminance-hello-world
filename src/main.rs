@@ -172,11 +172,16 @@ fn main_loop(mut surface: GlfwSurface) {
     let start_t = Instant::now();
     let back_buffer = surface.back_buffer().unwrap();
 
+    let suzane: Obj = Obj::load("models/untitled.obj").unwrap();
+
     let triangle = surface.new_tess()
         .set_vertices(&VERTICES[..])
         .set_mode(Mode::Triangle)
         .build()
         .unwrap();
+
+    let mesh = suzane.to_tess(&mut surface).unwrap();
+
 
     let mut program = surface.new_shader_program::<Semantics, (), ShaderInterface>()
         .from_strings(VS_STR, None, None, FS_STR)
@@ -214,7 +219,7 @@ fn main_loop(mut surface: GlfwSurface) {
                     iface.set(&uni.view, view.into());
 
                     rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                        tess_gate.render(&triangle)
+                        tess_gate.render(&mesh)
                     })
                 })
             },
