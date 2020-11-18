@@ -1,10 +1,9 @@
-in vec2 position;
-in vec3 color;
+in vec3 position; // 3D point!
 
-out vec3 v_color;
+uniform mat4 projection;
+uniform mat4 view;
+
 
 void main() {
-    v_color = color;
-
-    gl_Position = vec4(position, 0., 1.);
+  gl_Position = projection * view * vec4(position, 1.);
 }

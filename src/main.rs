@@ -1,9 +1,10 @@
+use luminance_front::shader::Uniform;
 use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance_front::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
-use luminance_derive::{Semantics, Vertex};
+use luminance_derive::{Semantics, Vertex, UniformInterface};
 use luminance::tess::Mode;
 use luminance::shader::Program;
 use luminance::render_state::RenderState;
@@ -17,9 +18,15 @@ use std::path::Path;
 use try_guard::verify;
 use wavefront_obj::obj;
 use std::collections::HashMap;
+use cgmath::{perspective, EuclideanSpace, Matrix4, Point3, Rad, Vector3};
 
 const VS_STR: &str = include_str!("vs.glsl");
 const FS_STR: &str = include_str!("fs.glsl");
+
+const FOVY: Rad<f32> = Rad(std::f32::consts::FRAC_PI_2);
+const Z_NEAR: f32 = 0.1;
+const Z_FAR: f32 = 10.;
+
 
 #[derive(Clone, Copy, Debug, Semantics)]
 pub enum Semantics {
@@ -35,6 +42,16 @@ pub struct Vertex {
 }
 
 type VertexIndex = u32;
+
+
+#[derive(Debug, UniformInterface)]
+struct ShaderInterface {
+  #[uniform(unbound)]
+  projection: Uniform<[[f32; 4]; 4]>,
+  #[uniform(unbound)]
+  view: Uniform<[[f32; 4]; 4]>,
+}
+
 
 #[derive(Debug)]
 struct Obj {
@@ -127,6 +144,10 @@ const VERTICES: [Vertex; 3] = [
     )
 ];
 
+const width: i32 = 960;
+const height: i32 = 540;
+
+
 fn main() {
     let dim = WindowDim::Windowed {
         width: 960,
@@ -157,10 +178,18 @@ fn main_loop(mut surface: GlfwSurface) {
         .build()
         .unwrap();
 
-    let mut program = surface.new_shader_program::<Semantics, (), ()>()
+    let mut program = surface.new_shader_program::<Semantics, (), ShaderInterface>()
         .from_strings(VS_STR, None, None, FS_STR)
         .unwrap()
         .ignore_warnings();
+
+      
+    let projection = perspective(FOVY, width as f32 / height as f32, Z_NEAR, Z_FAR);
+
+    let view = Matrix4::<f32>::look_at(Point3::new(2., 2., 2.), Point3::origin(), Vector3::unit_y());
+
+
+
         
     'app: loop {
         surface.window.glfw.poll_events();
@@ -180,7 +209,10 @@ fn main_loop(mut surface: GlfwSurface) {
             &back_buffer,
             &PipelineState::default().set_clear_color(color),
             |_, mut shd_gate| {
-                shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+                shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
+                    iface.set(&uni.projection, projection.into());
+                    iface.set(&uni.view, view.into());
+
                     rdr_gate.render(&RenderState::default(), |mut tess_gate| {
                         tess_gate.render(&triangle)
                     })
