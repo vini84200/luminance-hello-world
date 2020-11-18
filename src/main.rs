@@ -6,7 +6,6 @@ use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use luminance_derive::{Semantics, Vertex, UniformInterface};
 use luminance::tess::Mode;
-use luminance::shader::Program;
 use luminance::render_state::RenderState;
 use std::process::exit;
 use std::time::Instant;
@@ -30,8 +29,10 @@ const Z_FAR: f32 = 10.;
 
 #[derive(Clone, Copy, Debug, Semantics)]
 pub enum Semantics {
-  #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
+  # [sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
   Position,
+  # [sem(name = "normal", repr = "[f32; 3]", wrapper = "VertexNormal")]
+  Normal,
 }
 
 
@@ -39,6 +40,7 @@ pub enum Semantics {
 #[vertex(sem = "Semantics")]
 pub struct Vertex {
   position: VertexPosition,
+  normal: VertexNormal,
 }
 
 type VertexIndex = u32;
@@ -114,13 +116,15 @@ impl Obj {
               indices.push(*vertex_index);
             } else {
               let p = object.vertices[key.0];
-              let position = VertexPosition::new([p.x as f32, p.y as f32, p.z as f32]);
-              let vertex = Vertex { position };
-              let vertex_index = vertices.len() as VertexIndex;
-  
-              vertex_cache.insert(*key, vertex_index);
-              vertices.push(vertex);
-              indices.push(vertex_index);
+              let n = object.normals[key.2.ok_or("missing normal for a vertex".to_owned())?];
+            let position = VertexPosition::new([p.x as f32, p.y as f32, p.z as f32]);
+            let normal = VertexNormal::new([n.x as f32, n.y as f32, n.z as f32]);
+            let vertex = Vertex { position, normal };
+            let vertex_index = vertices.len() as VertexIndex;
+
+            vertex_cache.insert(*key, vertex_index);
+            vertices.push(vertex);
+            indices.push(vertex_index);
             }
           }
         } else {
@@ -131,22 +135,6 @@ impl Obj {
       Ok(Obj { vertices, indices })
     }
   }
-
-const VERTICES: [Vertex; 3] = [
-    Vertex::new(
-        VertexPosition::new([-0.5, -0.5, 0.]),
-    ),
-    Vertex::new(
-        VertexPosition::new([0.5, -0.5, 0.]),
-    ),
-    Vertex::new(
-        VertexPosition::new([0., 0.5, 0.]),
-    )
-];
-
-const width: i32 = 960;
-const height: i32 = 540;
-
 
 fn main() {
     let dim = WindowDim::Windowed {
@@ -172,13 +160,7 @@ fn main_loop(mut surface: GlfwSurface) {
     let start_t = Instant::now();
     let back_buffer = surface.back_buffer().unwrap();
 
-    let suzane: Obj = Obj::load("models/untitled.obj").unwrap();
-
-    let triangle = surface.new_tess()
-        .set_vertices(&VERTICES[..])
-        .set_mode(Mode::Triangle)
-        .build()
-        .unwrap();
+    let suzane: Obj = Obj::load("models/suzanne.obj").unwrap();
 
     let mesh = suzane.to_tess(&mut surface).unwrap();
 
@@ -189,6 +171,7 @@ fn main_loop(mut surface: GlfwSurface) {
         .ignore_warnings();
 
       
+    let [width, height] = back_buffer.size();
     let projection = perspective(FOVY, width as f32 / height as f32, Z_NEAR, Z_FAR);
 
     let view = Matrix4::<f32>::look_at(Point3::new(2., 2., 2.), Point3::origin(), Vector3::unit_y());

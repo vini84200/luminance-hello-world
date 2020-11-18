@@ -1,9 +1,13 @@
 in vec3 position; // 3D point!
+in vec3 normal;
+
+out vec3 v_normal;
 
 uniform mat4 projection;
 uniform mat4 view;
 
 
 void main() {
-  gl_Position = projection * view * vec4(position, 1.);
+    v_normal = normal;
+    gl_Position = projection * view * vec4(position, 1.);
 }
