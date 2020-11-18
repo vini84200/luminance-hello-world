@@ -12,3 +12,7 @@ luminance-glfw = "0.14"
 luminance-windowing = "0.9"
 glfw = { version = ">=0.39, <0.42", default-features = false }
 luminance-derive = "0.6"
+luminance-front = "0.3"
+try-guard = "0.2.0"
+wavefront_obj = "8.0.0"
+cgmath = "0.17"
